@@ -1,0 +1,138 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Usuario {
+  id            String    @id @default(uuid())
+  nombre        String
+  email         String    @unique
+  passwordHash  String
+  rol           Rol       @default(CONSULTOR)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  logs          Log[]
+}
+
+model Expediente {
+  id              String    @id @default(uuid())
+  numeroExpediente String   @unique
+  fechaIngreso    DateTime  @default(now())
+  tipo            TipoMovimiento
+  color           String
+  colorBibliorato String?
+  descripcion     String
+  monto          Float
+  estado         EstadoExpediente
+  creadoPor      String    // ID del usuario
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  pagos          Pago[]
+  bancoMovimiento BancoMovimiento?
+  planilla       PlanillaExcel?
+  logs           Log[]
+
+  @@index([fechaIngreso])
+  @@index([tipo])
+  @@index([estado])
+}
+
+model BancoMovimiento {
+  id            String    @id @default(uuid())
+  fechaMovimiento DateTime
+  tipo          TipoMovimiento
+  monto         Float
+  descripcion   String
+  expedienteId  String    @unique
+  expediente    Expediente @relation(fields: [expedienteId], references: [id])
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([fechaMovimiento])
+  @@index([tipo])
+}
+
+model PlanillaExcel {
+  id            String    @id @default(uuid())
+  descripcion   String
+  monto         Float
+  fechaIngreso  DateTime
+  expedienteId  String    @unique
+  expediente    Expediente @relation(fields: [expedienteId], references: [id])
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([fechaIngreso])
+}
+
+model Pago {
+  id            String    @id @default(uuid())
+  expedienteId  String
+  monto         Float
+  tipo          TipoPago
+  chequeNumero  String?
+  fecha         DateTime
+  notas         String?
+  creadoPor     String    // ID del usuario
+  expediente    Expediente @relation(fields: [expedienteId], references: [id])
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([fecha])
+  @@index([expedienteId])
+}
+
+model Log {
+  id            String    @id @default(uuid())
+  usuarioId     String
+  usuario       Usuario   @relation(fields: [usuarioId], references: [id])
+  expedienteId  String?
+  expediente    Expediente? @relation(fields: [expedienteId], references: [id])
+  accion        String
+  detalles      String?
+  createdAt     DateTime  @default(now())
+
+  @@index([usuarioId])
+  @@index([expedienteId])
+  @@index([createdAt])
+}
+
+model Backup {
+  id            String    @id @default(uuid())
+  nombre        String
+  descripcion   String?
+  archivo       String    // Ruta o nombre del archivo
+  createdAt     DateTime  @default(now())
+  creadoPor     String    // ID del usuario
+}
+
+enum Rol {
+  ADMIN
+  CONSULTOR
+}
+
+enum TipoMovimiento {
+  INGRESO
+  GASTO
+}
+
+enum EstadoExpediente {
+  PAGADO
+  ABIERTO
+  CERRADO
+  PENDIENTE
+  FALTAN_FIRMAS
+}
+
+enum TipoPago {
+  CHEQUE
+  TRANSFERENCIA
+  EFECTIVO
+}
